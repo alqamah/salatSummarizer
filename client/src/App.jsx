@@ -74,8 +74,8 @@ function App() {
   return (
     <div className="container">
       <header className="header">
-        <h1>Audio Insights</h1>
-        <p>Enhance recordings and extract transcriptions instantly.</p>
+        <h1>Audio Enhancer</h1>
+        <p>Upload your MP3 to enhance recordings instantly.</p>
       </header>
 
       <main className="main-content">
@@ -99,7 +99,7 @@ function App() {
               <div className="status-indicator">
                 <Loader2 className="icon spin" size={48} />
                 <h3>Processing Audio...</h3>
-                <p>Applying FFmpeg filters and generating transcript.</p>
+                <p>Applying FFmpeg filters.</p>
               </div>
             ) : file ? (
               <div className="status-indicator success">
@@ -149,16 +149,6 @@ function App() {
                 <div className="audio-actions">
                   <a href={result.processedAudioUrl} download className="btn-secondary">Download Enhanced File</a>
                 </div>
-              </div>
-            </div>
-
-            <div className="result-card">
-              <div className="card-header">
-                <FileText size={20} />
-                <h3>Transcription</h3>
-              </div>
-              <div className="card-body transcription-box">
-                <p>{result.transcription || "No transcription available."}</p>
               </div>
             </div>
           </div>

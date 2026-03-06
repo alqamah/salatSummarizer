@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const ffmpeg = require('fluent-ffmpeg');
-const { OpenAI } = require('openai');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -29,10 +28,6 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-});
 
 app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
   if (!req.file) {
@@ -64,28 +59,6 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
         .save(outputPath);
     });
 
-    console.log(`Transcribing processed file: ${outputPath}`);
-    // OpenAI Whisper API expects a File stream
-    let transcriptionText = '';
-
-    // Check if OPENAI_API_KEY is available
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn("OPENAI_API_KEY is missing. Skipping transcription.");
-      transcriptionText = "[STT generation skipped because OPENAI_API_KEY is not configured]";
-    } else {
-      try {
-        const audioStream = fs.createReadStream(outputPath);
-        const response = await openai.audio.transcriptions.create({
-          file: audioStream,
-          model: 'whisper-1'
-        });
-        transcriptionText = response.text;
-      } catch (sttError) {
-        console.error('OpenAI Error:', sttError.message);
-        transcriptionText = `[STT failed: ${sttError.message}]`;
-      }
-    }
-
     const processedAudioUrl = `http://localhost:${port}/uploads/${finalFilename}`;
 
     // Clean up the original uploaded file (optional, but good for space)
@@ -95,7 +68,6 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
 
     res.json({
       success: true,
-      transcription: transcriptionText,
       processedAudioUrl: processedAudioUrl
     });
 
