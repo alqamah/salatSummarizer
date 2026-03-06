@@ -1,0 +1,2 @@
+1. Learn about ffmpeg filters
+2. use a free alternative to openai-whisper for transcription
