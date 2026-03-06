@@ -1,0 +1,20 @@
+# Librariers
+
+/client/node_modules
+/server/node_modules
+
+# Environment variables
+
+/server/.env
+
+# Build outputs
+/client/dist
+/client/dist-ssr
+
+# Large files
+
+/server/uploads
+
+# OS generated files
+.DS_Store
+Thumbs.db
