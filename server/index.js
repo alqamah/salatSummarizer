@@ -4,6 +4,8 @@ const multer = require('multer');
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
 const fs = require('fs');
+const { Storage } = require('@google-cloud/storage');
+const speech = require('@google-cloud/speech');
 require('dotenv').config();
 
 const app = express();
@@ -29,6 +31,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+const gcsClient = new Storage();
+const speechClient = new speech.SpeechClient();
+
 app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No audio file uploaded.' });
@@ -41,9 +46,23 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
 
   try {
     console.log(`Processing file: ${inputPath}`);
-    // Apply FFmpeg filters: noise reduction and silence removal
+
+    // Get audio duration
+    const duration = await new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(inputPath, (err, metadata) => {
+        if (err) return reject(err);
+        resolve(metadata.format.duration);
+      });
+    });
+
+    const startTime = duration * 0.25;
+    const durationToKeep = duration * 0.50;
+
+    // Apply FFmpeg filters: trimming, noise reduction, and silence removal
     await new Promise((resolve, reject) => {
       ffmpeg(inputPath)
+        .setStartTime(startTime)
+        .setDuration(durationToKeep)
         .audioFilters([
           'afftdn', // fast fourier transform based noise reduction
           'silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB'
@@ -59,16 +78,58 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
         .save(outputPath);
     });
 
+    const bucketName = process.env.GCS_BUCKET_NAME || 'salat-sum-bucket';
+    const gcsDestination = `output/audio-files/${finalFilename}`;
+
+    console.log(`Uploading processed audio to GCS bucket: ${bucketName}...`);
+    await gcsClient.bucket(bucketName).upload(outputPath, {
+      destination: gcsDestination,
+      metadata: {
+        contentType: 'audio/mpeg', // assuming mp3
+      }
+    });
+
+    const gcsUri = `gs://${bucketName}/${gcsDestination}`;
+    console.log(`Uploaded to GCS: ${gcsUri}`);
+
+    console.log(`Starting STT job...`);
+    // Transcribes your audio file using the specified configuration.
+    const config = {
+      model: "latest_long",
+      encoding: "MP3",
+      sampleRateHertz: 48000,
+      audioChannelCount: 2,
+      enableWordTimeOffsets: true,
+      enableWordConfidence: true,
+      languageCode: "ar-SA",
+    };
+
+    const request = {
+      audio: { uri: gcsUri },
+      config: config,
+    };
+
+    const [operation] = await speechClient.longRunningRecognize(request);
+    console.log(`Waiting for STT operation to complete...`);
+    const [response] = await operation.promise();
+
+    const transcription = response.results
+      .map(result => result.alternatives[0].transcript)
+      .join('\n');
+
+    console.log(`Transcription: ${transcription}`);
+
     const processedAudioUrl = `http://localhost:${port}/uploads/${finalFilename}`;
 
-    // Clean up the original uploaded file (optional, but good for space)
+    // Clean up the original uploaded file
     fs.unlink(inputPath, (err) => {
       if (err) console.error('Failed to cleanup original file:', err);
     });
 
     res.json({
       success: true,
-      processedAudioUrl: processedAudioUrl
+      processedAudioUrl: processedAudioUrl,
+      transcript: transcription
     });
 
   } catch (error) {

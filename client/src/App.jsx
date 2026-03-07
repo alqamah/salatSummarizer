@@ -151,6 +151,20 @@ function App() {
                 </div>
               </div>
             </div>
+
+            {result.transcript && (
+              <div className="result-card">
+                <div className="card-header">
+                  <FileText size={20} />
+                  <h3>Transcription</h3>
+                </div>
+                <div className="card-body">
+                  <div className="transcription-text" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', textAlign: 'right', direction: 'rtl' }}>
+                    {result.transcript}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
