@@ -1,2 +1,4 @@
 1. Learn about ffmpeg filters
+1.ii. Add filter tuning buttons on upload page
+
 2. use a free alternative to openai-whisper for transcription
