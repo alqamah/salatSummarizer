@@ -8,6 +8,8 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [statusMessage, setStatusMessage] = useState('Applying FFmpeg filters...');
+  const [clientId] = useState(() => Date.now().toString() + Math.random().toString(36).substring(2));
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -47,9 +49,21 @@ function App() {
 
     setIsUploading(true);
     setError(null);
+    setStatusMessage('Starting upload...');
+
+    const eventSource = new EventSource(`http://localhost:3001/api/status?clientId=${clientId}`);
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setStatusMessage(data.status);
+      } catch (err) {
+        console.error('Failed to parse SSE message:', err);
+      }
+    };
 
     const formData = new FormData();
     formData.append('audio', file);
+    formData.append('clientId', clientId);
 
     try {
       const response = await axios.post('http://localhost:3001/api/process-audio', formData, {
@@ -68,14 +82,13 @@ function App() {
       setError(err.response?.data?.error || err.response?.data?.details || 'An error occurred during upload or processing.');
     } finally {
       setIsUploading(false);
+      eventSource.close();
     }
   };
 
   return (
     <div className="container">
       <header className="header">
-        <h1>Audio Enhancer</h1>
-        <p>Upload your MP3 to enhance recordings instantly.</p>
       </header>
 
       <main className="main-content">
@@ -99,7 +112,7 @@ function App() {
               <div className="status-indicator">
                 <Loader2 className="icon spin" size={48} />
                 <h3>Processing Audio...</h3>
-                <p>Applying FFmpeg filters.</p>
+                <p>{statusMessage}</p>
               </div>
             ) : file ? (
               <div className="status-indicator success">

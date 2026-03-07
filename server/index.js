@@ -14,6 +14,30 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+const clients = {};
+
+app.get('/api/status', (req, res) => {
+  const clientId = req.query.clientId;
+  if (!clientId) return res.status(400).json({ error: 'clientId required' });
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  clients[clientId] = res;
+
+  req.on('close', () => {
+    delete clients[clientId];
+  });
+});
+
+const sendStatus = (clientId, message) => {
+  console.log(message);
+  if (clients[clientId]) {
+    clients[clientId].write(`data: ${JSON.stringify({ status: message })}\n\n`);
+  }
+};
+
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -39,12 +63,14 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     return res.status(400).json({ error: 'No audio file uploaded.' });
   }
 
+  const clientId = req.body.clientId;
   const inputPath = req.file.path;
   const originalExt = path.extname(req.file.originalname) || '.mp3';
   const finalFilename = `processed-${path.basename(req.file.filename, path.extname(req.file.filename))}${originalExt}`;
   const outputPath = path.join(UPLOAD_DIR, finalFilename);
 
   try {
+    if (clientId) sendStatus(clientId, `Processing file: ${req.file.originalname}`);
     console.log(`Processing file: ${inputPath}`);
 
     // Get audio duration
@@ -55,10 +81,11 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
       });
     });
 
-    const startTime = duration * 0.25;
-    const durationToKeep = duration * 0.50;
+    const startTime = duration * 0.30;
+    const durationToKeep = duration * 0.40;
 
     // Apply FFmpeg filters: trimming, noise reduction, and silence removal
+    if (clientId) sendStatus(clientId, `Applying FFmpeg filters and trimming audio...`);
     await new Promise((resolve, reject) => {
       ffmpeg(inputPath)
         .setStartTime(startTime)
@@ -68,10 +95,12 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
           'silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB'
         ])
         .on('end', () => {
+          if (clientId) sendStatus(clientId, 'FFmpeg processing completed successfully.');
           console.log('FFmpeg processing completed successfully.');
           resolve();
         })
         .on('error', (err) => {
+          if (clientId) sendStatus(clientId, `FFmpeg error: ${err.message}`);
           console.error('FFmpeg error:', err);
           reject(err);
         })
@@ -81,6 +110,7 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     const bucketName = process.env.GCS_BUCKET_NAME || 'salat-sum-bucket';
     const gcsDestination = `output/audio-files/${finalFilename}`;
 
+    if (clientId) sendStatus(clientId, `Uploading processed audio to GCS bucket: ${bucketName}...`);
     console.log(`Uploading processed audio to GCS bucket: ${bucketName}...`);
     await gcsClient.bucket(bucketName).upload(outputPath, {
       destination: gcsDestination,
@@ -90,19 +120,35 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     });
 
     const gcsUri = `gs://${bucketName}/${gcsDestination}`;
+    if (clientId) sendStatus(clientId, `Uploaded to GCS successfully.`);
     console.log(`Uploaded to GCS: ${gcsUri}`);
 
+    if (clientId) sendStatus(clientId, `Starting STT job...`);
     console.log(`Starting STT job...`);
     // Transcribes your audio file using the specified configuration.
+    // DEFAULT CONFIG
+    // const config = {
+    //   model: "latest_long",
+    //   encoding: "MP3",
+    //   sampleRateHertz: 48000,
+    //   audioChannelCount: 2,
+    //   enableWordTimeOffsets: true,
+    //   enableWordConfidence: true,
+    //   languageCode: "ar-SA",
+    // };
+
+    // NEW CONFIG
     const config = {
-      model: "latest_long",
-      encoding: "MP3",
-      sampleRateHertz: 48000,
-      audioChannelCount: 2,
-      enableWordTimeOffsets: true,
-      enableWordConfidence: true,
-      languageCode: "ar-SA",
-    };
+      // Use Chirp 2 for superior linguistic and prosodic handling
+      model: "chirp_2",
+      languageCodes: ["ar-SA"], // V2 uses an array for languageCodes
+      features: {
+        enableWordTimeOffsets: true,
+        enableWordConfidence: true,
+        // High-leverage: Automatic punctuation can help segment verses
+        enableAutomaticPunctuation: true
+      }
+    };  
 
     const request = {
       audio: { uri: gcsUri },
@@ -110,6 +156,7 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     };
 
     const [operation] = await speechClient.longRunningRecognize(request);
+    if (clientId) sendStatus(clientId, `Waiting for STT operation to complete (this may take a few minutes)...`);
     console.log(`Waiting for STT operation to complete...`);
     const [response] = await operation.promise();
 
@@ -117,6 +164,7 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
       .map(result => result.alternatives[0].transcript)
       .join('\n');
 
+    if (clientId) sendStatus(clientId, `Transcription finished!`);
     console.log(`Transcription: ${transcription}`);
 
     const processedAudioUrl = `http://localhost:${port}/uploads/${finalFilename}`;
@@ -133,6 +181,7 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     });
 
   } catch (error) {
+    if (clientId) sendStatus(clientId, `Error: ${error.message}`);
     console.error('Error during audio processing:', error);
     // Cleanup files if possible
     if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);

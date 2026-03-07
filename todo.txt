@@ -2,3 +2,30 @@
 1.ii. Add filter tuning buttons on upload page
 
 2. use a free alternative to openai-whisper for transcription
+
+07/03 - 7:40 AM
+- Current Sprint: Fuzzy Search & Identification
+Implement Fuzzy Search Algorithm: Develop a robust matching logic (e.g., Levenshtein distance or Smith-Waterman) to align the phonetically-errored transcript with canonical Quranic text.
+
+Verse Identification Module: Build a parser to map aligned text segments to specific Surah/Ayah coordinates (e.g., identifying Surah Yunus 10:15-25).
+
+Automated Summarizer: Create a summarization service that takes identified verse ranges and generates thematic insights.
+
+Infrastructure & STT Optimization
+Create Speech Adaptation Phrase Sets: Define a JSON list of common Quranic terms (e.g., الغيب, حصيداً, دار السلام) to bias the STT model away from common conversational Arabic substitutes.
+
+STT V2 Recognizer Setup: Configure a V2 Recognizer in the us-central1 region to enable Chirp 2 with the enableAutomaticPunctuation feature.
+
+GCS Lifecycle Policy: Set a 30-day auto-delete rule for salat-sum-bucket in the Google Cloud Console to ensure storage stays below the 5GB "Always Free" threshold.
+
+Backend & Security
+Service Account Hardening: Verify gcp-credentials.json is in the .gitignore and remove legacy API keys from the .env file to minimize security risks.
+
+Tajweed Handling: Investigate speech_context boosting specifically for nasalization (Ikhfa) and prolongations (Madd) to fix phonetic substitutions in the transcript.
+
+Data Verification
+Error Correction Logic: Programmatically fix recurring critical errors identified in the Surah Yunus transcript, such as the confusion between "Anger" (الغيظ) and "The Unseen" (الغيب).
+
+Confidence Score Filtering: Use word-level confidence scores to flag segments of the transcript that require manual review or higher-intensity fuzzy matching.
+
+-> also, approximate the verse recited based on the audio length. 
