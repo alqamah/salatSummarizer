@@ -6,7 +6,9 @@ const path = require('path');
 const fs = require('fs');
 const { Storage } = require('@google-cloud/storage');
 const speech = require('@google-cloud/speech');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -57,6 +59,83 @@ const upload = multer({ storage });
 
 const gcsClient = new Storage();
 const speechClient = new speech.SpeechClient();
+const genAI = new GoogleGenerativeAI(process.env.gemini_api_key);
+
+async function performSTT(gcsUri, clientId) {
+  if (clientId) sendStatus(clientId, `Starting STT job (V1 latest_long)...`);
+  console.log(`Starting STT job (V1 latest_long)...`);
+
+  const config = {
+    encoding: 'MP3',
+    sampleRateHertz: 48000,
+    languageCode: 'ar-SA',
+    model: 'latest_long',
+    enableWordTimeOffsets: true,
+    enableWordConfidence: true,
+    enableAutomaticPunctuation: true
+  };
+
+  const request = {
+    audio: { uri: gcsUri },
+    config: config,
+  };
+
+  try {
+    const [operation] = await speechClient.longRunningRecognize(request);
+    if (clientId) sendStatus(clientId, `Waiting for STT operation to complete...`);
+
+    const [response] = await operation.promise();
+
+    if (!response.results || response.results.length === 0) {
+      throw new Error("No transcription results found.");
+    }
+
+    const transcription = response.results
+      .map(result => result.alternatives[0].transcript)
+      .join('\n');
+
+    if (clientId) sendStatus(clientId, `Transcription finished!`);
+    console.log(`Transcription: ${transcription}`);
+    return transcription;
+  } catch (err) {
+    console.error('STT V1 Error:', err);
+    throw err;
+  }
+}
+
+async function generateSummary(transcription, clientId) {
+  let summary = "Summary unavailable.";
+  let aiError = null;
+
+  if (clientId) sendStatus(clientId, `Summarizing with AI...`);
+  console.log(`Summarizing transcription with AI...`);
+
+  try {
+    // Using gemini-2.5-flash as the fallback model for 'gemma 3' via AI Studio
+    const aiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const prompt = `You are a Quranic transcription and summarization assistant.
+Here is a raw Arabic transcript from an audio recitation. It may contain phonetic STT errors.
+Please:
+1. Identify the likely Surah and Ayahs (verses) recited.
+2. Provide a thematic summary of the recited verses in English.
+3. Correct obvious phonetic transcription errors (e.g. confusing الغيظ with الغيب).
+
+Transcript:
+${transcription}`;
+
+    const aiResponse = await aiModel.generateContent(prompt);
+    summary = aiResponse.response.text();
+
+    if (clientId) sendStatus(clientId, `Summarization complete.`);
+    console.log(`Summary generated successfully.`);
+  } catch (aiErr) {
+    console.error('SERVER ERROR DETAILS (Gemini):', aiErr);
+    if (clientId) sendStatus(clientId, `Warning: Summarization failed. See console.`);
+    aiError = aiErr.message || JSON.stringify(aiErr);
+  }
+
+  return { summary, aiError };
+}
 
 app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
   if (!req.file) {
@@ -123,49 +202,9 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     if (clientId) sendStatus(clientId, `Uploaded to GCS successfully.`);
     console.log(`Uploaded to GCS: ${gcsUri}`);
 
-    if (clientId) sendStatus(clientId, `Starting STT job...`);
-    console.log(`Starting STT job...`);
-    // Transcribes your audio file using the specified configuration.
-    // DEFAULT CONFIG
-    // const config = {
-    //   model: "latest_long",
-    //   encoding: "MP3",
-    //   sampleRateHertz: 48000,
-    //   audioChannelCount: 2,
-    //   enableWordTimeOffsets: true,
-    //   enableWordConfidence: true,
-    //   languageCode: "ar-SA",
-    // };
-
-    // NEW CONFIG
-    const config = {
-      // Use Chirp 2 for superior linguistic and prosodic handling
-      model: "chirp_2",
-      languageCodes: ["ar-SA"], // V2 uses an array for languageCodes
-      features: {
-        enableWordTimeOffsets: true,
-        enableWordConfidence: true,
-        // High-leverage: Automatic punctuation can help segment verses
-        enableAutomaticPunctuation: true
-      }
-    };  
-
-    const request = {
-      audio: { uri: gcsUri },
-      config: config,
-    };
-
-    const [operation] = await speechClient.longRunningRecognize(request);
-    if (clientId) sendStatus(clientId, `Waiting for STT operation to complete (this may take a few minutes)...`);
-    console.log(`Waiting for STT operation to complete...`);
-    const [response] = await operation.promise();
-
-    const transcription = response.results
-      .map(result => result.alternatives[0].transcript)
-      .join('\n');
-
-    if (clientId) sendStatus(clientId, `Transcription finished!`);
-    console.log(`Transcription: ${transcription}`);
+    // Call the decoupled services
+    const transcription = await performSTT(gcsUri, clientId);
+    const { summary, aiError } = await generateSummary(transcription, clientId);
 
     const processedAudioUrl = `http://localhost:${port}/uploads/${finalFilename}`;
 
@@ -177,7 +216,9 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     res.json({
       success: true,
       processedAudioUrl: processedAudioUrl,
-      transcript: transcription
+      transcript: transcription,
+      summary: summary,
+      aiError: aiError
     });
 
   } catch (error) {
@@ -187,7 +228,12 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
 
-    res.status(500).json({ error: 'Internal server error during audio processing.', details: error.message });
+    console.error('SERVER ERROR DETAILS:', error);
+    res.status(500).json({
+      error: 'Internal server error during audio processing.',
+      details: error.message,
+      fullError: error.stack || JSON.stringify(error, null, 2)
+    });
   }
 });
 
