@@ -7,8 +7,7 @@ const fs = require('fs');
 const { Storage } = require('@google-cloud/storage');
 const speech = require('@google-cloud/speech');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-require('dotenv').config();
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+require('dotenv').config({ path: path.join(__dirname, 'credentials', '.env') });
 
 const app = express();
 const port = process.env.PORT || 3001;
