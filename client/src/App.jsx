@@ -78,8 +78,12 @@ function App() {
         setError(response.data.error || 'Failed to process audio.');
       }
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.error || err.response?.data?.details || 'An error occurred during upload or processing.');
+      if (err.response?.data) {
+        const { error: mainErr, details, fullError } = err.response.data;
+        setError(`${mainErr || 'Error'}${details ? ' - Details: ' + details : ''}${fullError ? ' | ' + fullError : ''}`);
+      } else {
+        setError(err.message || 'An error occurred during upload or processing.');
+      }
     } finally {
       setIsUploading(false);
       eventSource.close();
@@ -176,6 +180,27 @@ function App() {
                     {result.transcript}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {result.summary && (
+              <div className="result-card">
+                <div className="card-header">
+                  <FileText size={20} />
+                  <h3>AI Summary & Insights</h3>
+                </div>
+                <div className="card-body">
+                  <div className="transcription-text" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                    {result.summary}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {result.aiError && (
+              <div className="error-message" style={{ marginTop: '1rem' }}>
+                <AlertCircle size={20} />
+                <span>AI processing encountered an error: {result.aiError}</span>
               </div>
             )}
           </div>
