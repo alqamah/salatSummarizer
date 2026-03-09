@@ -22,5 +22,6 @@ Thumbs.db
 .env
 salat-summariser-key.json
 
-# AI context exclusion
-tasks.aiexclude
+# AI context exclusion ??
+tasks.aiexclude.md
+
