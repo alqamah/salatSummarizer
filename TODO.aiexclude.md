@@ -28,13 +28,13 @@
 ## 09/03/2026
 
 * **use gemini for STT and summary directly**
-* **trim the audio in a better way** 
 * **improve ui**
+* **trim the audio in a better way** improve audio trimming logic
 * **add alternate summary options**: 1. use GCP STT, 2. gemini different models, 3. other alternate open-source models, 4. native gemini app through prompt injection.
-* **add interface to activate recording on the frontend**: use browser's media recorder api to record audio and send it to the backend. refer to roadmap
+* **add alternate audio trimming options**: trim audio or send the entire audio
 * **database**: use mongodb
 * **logging**: implement error logging mechanism
 * **deployment**
 * **sumamariser**: improve the summariser system instruction to account for the other verses. Add options to view verse only, summary only, transiteration (?) along with the same options for the entire surah
 * **TTS**
-* 
+* **add interface to activate recording on the frontend**: use browser's media recorder api to record audio and send it to the backend. refer to roadmap
