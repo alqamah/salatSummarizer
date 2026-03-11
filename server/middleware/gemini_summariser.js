@@ -2,7 +2,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', 'credentials', '.env') });
 
-const genAI = new GoogleGenerativeAI(process.env.gemini_api_key);
+const apiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
+const genAI = new GoogleGenerativeAI(apiKey);
 
 async function generateSummary(transcription, clientId, sendStatus) {
     let summary = "Summary unavailable.";

@@ -1,15 +1,21 @@
 :root {
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  --bg-color: #0f172a;
-  --panel-bg: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
+  --bg-color: #e0e5ec;
+  --panel-bg: #e0e5ec;
+  --text-main: #4a5568;
+  --text-muted: #718096;
+  --primary: #e0e5ec; 
+  --primary-text: #3b82f6; 
   --success: #10b981;
   --danger: #ef4444;
-  --border: #334155;
-  --radius: 12px;
+  --radius: 16px;
+  
+  /* Neumorphic Shadows */
+  --shadow-outer: 9px 9px 16px rgb(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5);
+  --shadow-inner: inset 4px 4px 8px rgba(163,177,198, 0.5), inset -4px -4px 8px rgba(255,255,255, 0.5);
+  --shadow-hover: 12px 12px 20px rgb(163,177,198,0.7), -12px -12px 20px rgba(255,255,255, 0.6);
+  --shadow-sm: 5px 5px 10px rgb(163,177,198,0.5), -5px -5px 10px rgba(255,255,255, 0.5);
+  --shadow-divider: inset 0 2px 2px -2px rgba(163,177,198, 0.6);
 }
 
 * {
@@ -43,10 +49,8 @@ body {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  background: linear-gradient(to right, #60a5fa, #a78bfa);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--primary-text);
+  text-shadow: 2px 2px 4px rgba(163,177,198,0.4), -2px -2px 4px rgba(255,255,255,0.4);
 }
 
 .header p {
@@ -56,23 +60,22 @@ body {
 
 .upload-zone {
   background-color: var(--panel-bg);
-  border: 2px dashed var(--border);
+  border: none;
   border-radius: var(--radius);
   padding: 3rem 2rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-outer);
 }
 
 .upload-zone:hover {
-  border-color: var(--primary);
-  background-color: rgba(30, 41, 59, 0.8);
+  box-shadow: var(--shadow-hover);
 }
 
 .upload-zone.has-file {
-  border-style: solid;
-  border-color: var(--success);
+  box-shadow: var(--shadow-inner);
 }
 
 .upload-content {
@@ -88,7 +91,7 @@ body {
 }
 
 .text-primary {
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 .text-success {
@@ -105,52 +108,144 @@ body {
   font-size: 0.95rem;
 }
 
+/* Form Settings & Options container */
+.options-container {
+  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background-color: var(--bg-color);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-outer);
+}
+
+.processing-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.processing-options h4, .trim-option h4 {
+  margin: 0;
+  color: var(--text-main);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.trim-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1.5rem;
+  box-shadow: var(--shadow-divider);
+}
+
+label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+/* Custom Checkbox and Radio logic for Neumorphism */
+input[type="radio"], input[type="checkbox"] {
+  appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background-color: var(--bg-color);
+  box-shadow: var(--shadow-inner);
+  display: grid;
+  place-content: center;
+  margin: 0;
+  cursor: pointer;
+}
+
+input[type="checkbox"] {
+  border-radius: 4px;
+}
+
+input[type="radio"]::before, input[type="checkbox"]::before {
+  content: "";
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: inherit;
+  box-shadow: inset 1em 1em var(--primary-text);
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+}
+
+input[type="radio"]:checked::before, input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+/* Buttons */
 .btn-primary {
   width: 100%;
   padding: 1rem;
-  background-color: var(--primary);
-  color: white;
+  background-color: var(--bg-color);
+  color: var(--primary-text);
   border: none;
   border-radius: var(--radius);
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-outer);
   margin-bottom: 2rem;
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-hover);
+  box-shadow: var(--shadow-hover);
+}
+
+.btn-primary:active {
+  box-shadow: var(--shadow-inner);
+  transform: scale(0.98);
 }
 
 .btn-secondary {
   display: inline-block;
   padding: 0.75rem 1.5rem;
-  background-color: transparent;
+  background-color: var(--bg-color);
   color: var(--text-main);
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 4px);
+  border: none;
+  border-radius: var(--radius);
   text-decoration: none;
   font-size: 0.95rem;
   transition: all 0.2s;
+  box-shadow: var(--shadow-outer);
 }
 
 .btn-secondary:hover {
-  background-color: var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
+.btn-secondary:active {
+  box-shadow: var(--shadow-inner);
+}
+
+/* Errors */
 .error-message {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background-color: rgba(239, 68, 68, 0.1);
   color: var(--danger);
   padding: 1rem;
   border-radius: var(--radius);
   margin-bottom: 1.5rem;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background-color: var(--bg-color);
+  box-shadow: var(--shadow-inner);
 }
 
+.neumorphic-error {
+  margin-top: 1.5rem;
+}
+
+/* Results */
 .results-container {
   display: flex;
   flex-direction: column;
@@ -163,7 +258,8 @@ body {
   background-color: var(--panel-bg);
   border-radius: var(--radius);
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: none;
+  box-shadow: var(--shadow-outer);
 }
 
 .success-header {
@@ -172,8 +268,7 @@ body {
   justify-content: center;
   gap: 0.75rem;
   padding: 1.25rem;
-  background-color: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.2);
+  box-shadow: inset 0 -4px 6px -4px rgba(16, 185, 129, 0.4);
 }
 
 .success-header h2 {
@@ -186,13 +281,12 @@ body {
   align-items: center;
   gap: 0.75rem;
   padding: 1.25rem;
-  border-bottom: 1px solid var(--border);
-  background-color: rgba(255, 255, 255, 0.02);
+  box-shadow: var(--shadow-divider);
 }
 
 .card-header h3 {
   font-size: 1.1rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .card-body {
@@ -202,7 +296,15 @@ body {
 .audio-player {
   width: 100%;
   margin-bottom: 1.5rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-inner);
+  background-color: var(--bg-color);
+}
+
+/* Native audio player pseudo elements for Neumorphism styling */
+audio::-webkit-media-controls-enclosure {
+  background-color: var(--bg-color);
+  border-radius: var(--radius);
 }
 
 .audio-actions {
@@ -210,17 +312,25 @@ body {
   justify-content: flex-end;
 }
 
-.transcription-box {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
+.transcription-text {
+  background-color: var(--bg-color);
+  box-shadow: var(--shadow-inner);
+  border-radius: var(--radius);
+  padding: 1.25rem;
   line-height: 1.6;
   font-size: 1.05rem;
-  color: #e2e8f0;
+  color: var(--text-main);
+  white-space: pre-wrap;
+}
+
+.transcription-text.rtl {
+  text-align: right;
+  direction: rtl;
 }
 
 .spin {
   animation: spin 1s linear infinite;
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 @keyframes spin {

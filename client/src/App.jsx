@@ -146,10 +146,10 @@ function App() {
         )}
 
         {file && !isUploading && !result && (
-          <div className="options-container" style={{ margin: '1.5rem 0', display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: 'var(--surface)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <div className="processing-options" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Processing Option</h4>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <div className="options-container">
+            <div className="processing-options">
+              <h4>Processing Option</h4>
+              <label>
                 <input
                   type="radio"
                   value="gcp_gemini"
@@ -158,7 +158,7 @@ function App() {
                 />
                 Option 1: GCP for STT -&gt; Gemini for Summary
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <label>
                 <input
                   type="radio"
                   value="gemini_direct"
@@ -169,9 +169,9 @@ function App() {
               </label>
             </div>
 
-            <div className="trim-option" style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
-              <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Audio Settings</h4>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <div className="trim-option">
+              <h4>Audio Settings</h4>
+              <label>
                 <input
                   type="checkbox"
                   checked={doNotTrim}
@@ -218,7 +218,7 @@ function App() {
                   <h3>Transcription</h3>
                 </div>
                 <div className="card-body">
-                  <div className="transcription-text" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', textAlign: 'right', direction: 'rtl' }}>
+                  <div className="transcription-text rtl">
                     {result.transcript}
                   </div>
                 </div>
@@ -232,7 +232,7 @@ function App() {
                   <h3>AI Summary & Insights</h3>
                 </div>
                 <div className="card-body">
-                  <div className="transcription-text" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                  <div className="transcription-text">
                     {result.summary}
                   </div>
                 </div>
@@ -240,7 +240,7 @@ function App() {
             )}
 
             {result.aiError && (
-              <div className="error-message" style={{ marginTop: '1rem' }}>
+              <div className="error-message neumorphic-error">
                 <AlertCircle size={20} />
                 <span>AI processing encountered an error: {result.aiError}</span>
               </div>

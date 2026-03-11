@@ -3,8 +3,9 @@ const { GoogleAIFileManager } = require("@google/generative-ai/server");
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', 'credentials', '.env') });
 
-const genAI = new GoogleGenerativeAI(process.env.gemini_api_key);
-const aiFileManager = new GoogleAIFileManager(process.env.gemini_api_key);
+const apiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
+const genAI = new GoogleGenerativeAI(apiKey);
+const aiFileManager = new GoogleAIFileManager(apiKey);
 
 async function processAudioDirectly(audioFilePath, clientId, sendStatus) {
     let summary = "Summary unavailable.";
@@ -59,7 +60,7 @@ Max Token Count: 1000`;
 
     } catch (aiErr) {
         console.error('SERVER ERROR DETAILS (Gemini Full):', aiErr);
-        if (clientId && sendStatus) sendStatus(clientId, `Warning: Gemini direct processing failed. See console.`);
+        if (clientId && sendStatus) sendStatus(clientId, `Gemini direct processing failed. See console.`);
         aiError = aiErr.message || JSON.stringify(aiErr);
     }
 
