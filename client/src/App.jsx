@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { Upload, FileAudio, Loader2, PlayCircle, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import './index.css';
+import RecordHandler from './recordHandler';
 
 function App() {
   const [file, setFile] = useState(null);
@@ -12,6 +13,7 @@ function App() {
   const [doNotTrim, setDoNotTrim] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Applying FFmpeg filters...');
   const [clientId] = useState(() => Date.now().toString() + Math.random().toString(36).substring(2));
+  const [inputMode, setInputMode] = useState('upload');
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -100,43 +102,69 @@ function App() {
       </header>
 
       <main className="main-content">
-        <section
-          className={`upload-zone ${file ? 'has-file' : ''} ${isUploading ? 'uploading' : ''}`}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onClick={() => !isUploading && fileInputRef.current?.click()}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="audio/*"
-            style={{ display: 'none' }}
-            disabled={isUploading}
-          />
+        <div className="input-mode-toggle">
+          <button
+            className={`mode-btn ${inputMode === 'upload' ? 'active' : ''}`}
+            onClick={() => setInputMode('upload')}
+            type="button"
+          >
+            Upload Audio
+          </button>
+          <button
+            className={`mode-btn ${inputMode === 'record' ? 'active' : ''}`}
+            onClick={() => setInputMode('record')}
+            type="button"
+          >
+            Record Audio
+          </button>
+        </div>
 
-          <div className="upload-content">
-            {isUploading ? (
-              <div className="status-indicator">
-                <Loader2 className="icon spin" size={48} />
-                <h3>Processing Audio...</h3>
-                <p>{statusMessage}</p>
-              </div>
-            ) : file ? (
-              <div className="status-indicator success">
-                <FileAudio className="icon text-primary" size={48} />
-                <h3>{file.name}</h3>
-                <p>{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-              </div>
-            ) : (
-              <div className="status-indicator">
-                <Upload className="icon" size={48} />
-                <h3>Click or drag to upload</h3>
-                <p>Supports MP3, WAV, M4A up to 50MB</p>
-              </div>
-            )}
-          </div>
-        </section>
+        {inputMode === 'upload' ? (
+          <section
+            className={`upload-zone ${file ? 'has-file' : ''} ${isUploading ? 'uploading' : ''}`}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="audio/*"
+              style={{ display: 'none' }}
+              disabled={isUploading}
+            />
+
+            <div className="upload-content">
+              {isUploading ? (
+                <div className="status-indicator">
+                  <Loader2 className="icon spin" size={48} />
+                  <h3>Processing Audio...</h3>
+                  <p>{statusMessage}</p>
+                </div>
+              ) : file ? (
+                <div className="status-indicator success">
+                  <FileAudio className="icon text-primary" size={48} />
+                  <h3>{file.name}</h3>
+                  <p>{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+              ) : (
+                <div className="status-indicator">
+                  <Upload className="icon" size={48} />
+                  <h3>Click or drag to upload</h3>
+                  <p>Supports MP3, WAV, M4A up to 50MB</p>
+                </div>
+              )}
+            </div>
+          </section>
+        ) : (
+          <RecordHandler onRecordingComplete={(recordedFile) => {
+            setFile(recordedFile);
+            setError(null);
+            setResult(null);
+            setInputMode('upload');
+          }} />
+        )}
 
         {error && (
           <div className="error-message">

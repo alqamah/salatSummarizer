@@ -31,7 +31,7 @@
 * **improve ui**
 * **trim the audio in a better way** improve audio trimming logic
 * **add alternate summary options**: 1. use GCP STT, 2. gemini different models, 3. other alternate open-source models, 4. native gemini app through prompt injection.
-* **add alternate audio trimming options**: trim audio or send the entire audio
+* **add alternate audio trimming options**: trim audio or send the entire audio ✅
 * **database**: use mongodb
 * **logging**: implement error logging mechanism
 * **deployment**
