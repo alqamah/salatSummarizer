@@ -30,9 +30,7 @@ function App() {
     }
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
+  const handleDragOver = (e) => e.preventDefault();
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -50,7 +48,6 @@ function App() {
 
   const uploadFile = async () => {
     if (!file) return;
-
     setIsUploading(true);
     setError(null);
     setStatusMessage('Starting upload...');
@@ -73,11 +70,8 @@ function App() {
 
     try {
       const response = await axios.post('http://localhost:3001/api/process-audio', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-
       if (response.data.success) {
         setResult(response.data);
       } else {
@@ -86,7 +80,7 @@ function App() {
     } catch (err) {
       if (err.response?.data) {
         const { error: mainErr, details, fullError } = err.response.data;
-        setError(`${mainErr || 'Error'}${details ? ' - Details: ' + details : ''}${fullError ? ' | ' + fullError : ''}`);
+        setError(`${mainErr || 'Error'}${details ? ' – ' + details : ''}${fullError ? ' | ' + fullError : ''}`);
       } else {
         setError(err.message || 'An error occurred during upload or processing.');
       }
@@ -98,10 +92,11 @@ function App() {
 
   return (
     <div className="container">
-      <header className="header">
+      <header className="app-header">
+        <h1>Salat <em>Summary</em></h1>
       </header>
 
-      <main className="main-content">
+      <main>
         <div className="input-mode-toggle">
           <button
             className={`mode-btn ${inputMode === 'upload' ? 'active' : ''}`}
@@ -119,9 +114,10 @@ function App() {
           </button>
         </div>
 
+        {/* Upload or Record panel */}
         {inputMode === 'upload' ? (
           <section
-            className={`upload-zone ${file ? 'has-file' : ''} ${isUploading ? 'uploading' : ''}`}
+            className={`upload-zone glass-panel ${file ? 'has-file' : ''} ${isUploading ? 'uploading' : ''}`}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onClick={() => !isUploading && fileInputRef.current?.click()}
@@ -134,89 +130,96 @@ function App() {
               style={{ display: 'none' }}
               disabled={isUploading}
             />
-
             <div className="upload-content">
               {isUploading ? (
                 <div className="status-indicator">
-                  <Loader2 className="icon spin" size={48} />
-                  <h3>Processing Audio...</h3>
+                  <Loader2 className="icon spin" size={52} />
+                  <h3>Processing Audio…</h3>
                   <p>{statusMessage}</p>
                 </div>
               ) : file ? (
-                <div className="status-indicator success">
-                  <FileAudio className="icon text-primary" size={48} />
+                <div className="status-indicator">
+                  <FileAudio className="icon text-primary" size={52} />
                   <h3>{file.name}</h3>
-                  <p>{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p>{(file.size / 1024 / 1024).toFixed(2)} MB · Ready to process</p>
                 </div>
               ) : (
                 <div className="status-indicator">
-                  <Upload className="icon" size={48} />
+                  <Upload className="icon" size={52} />
                   <h3>Click or drag to upload</h3>
-                  <p>Supports MP3, WAV, M4A up to 50MB</p>
+                  <p>Supports MP3, WAV, M4A up to 50 MB</p>
                 </div>
               )}
             </div>
           </section>
         ) : (
-          <RecordHandler onRecordingComplete={(recordedFile) => {
-            setFile(recordedFile);
-            setError(null);
-            setResult(null);
-            setInputMode('upload');
-          }} />
+          <RecordHandler
+            onRecordingComplete={(recordedFile) => {
+              setFile(recordedFile);
+              setError(null);
+              setResult(null);
+              setInputMode('upload');
+            }}
+          />
         )}
 
+        {/* Error banner */}
         {error && (
           <div className="error-message">
-            <AlertCircle size={20} />
+            <AlertCircle size={20} style={{ flexShrink: 0 }} />
             <span>{error}</span>
           </div>
         )}
 
+        {/* Processing options */}
         {file && !isUploading && !result && (
-          <div className="options-container">
-            <div className="processing-options">
-              <h4>Processing Option</h4>
-              <label>
-                <input
-                  type="radio"
-                  value="gcp_gemini"
-                  checked={processingOption === 'gcp_gemini'}
-                  onChange={(e) => setProcessingOption(e.target.value)}
-                />
-                Option 1: GCP for STT -&gt; Gemini for Summary
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  value="gemini_direct"
-                  checked={processingOption === 'gemini_direct'}
-                  onChange={(e) => setProcessingOption(e.target.value)}
-                />
-                Option 2: Send trimmed audio directly to Gemini
-              </label>
-            </div>
+          <div className="options-container glass-panel">
+            <div className="options-grid">
+              <div className="processing-options">
+                <h4 className="options-section-title">Processing Method</h4>
+                <label>
+                  <input
+                    type="radio"
+                    value="gcp_gemini"
+                    checked={processingOption === 'gcp_gemini'}
+                    onChange={(e) => setProcessingOption(e.target.value)}
+                  />
+                  GCP Speech-to-Text → Gemini Summary
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    value="gemini_direct"
+                    checked={processingOption === 'gemini_direct'}
+                    onChange={(e) => setProcessingOption(e.target.value)}
+                  />
+                  Send audio directly to Gemini
+                </label>
+              </div>
 
-            <div className="trim-option">
-              <h4>Audio Settings</h4>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={doNotTrim}
-                  onChange={(e) => setDoNotTrim(e.target.checked)}
-                />
-                Do not trim audio
-              </label>
+              <div className="trim-option">
+                <h4 className="options-section-title">Audio Settings</h4>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={doNotTrim}
+                    onChange={(e) => setDoNotTrim(e.target.checked)}
+                  />
+                  Do not trim audio
+                </label>
+              </div>
             </div>
           </div>
         )}
 
+        {/* Process button */}
         {file && !isUploading && !result && (
           <button className="btn-primary" onClick={uploadFile}>
-            Process Recording
+            ✦ Process Recording
           </button>
         )}
 
+        {/* Results */}
         {result && (
           <div className="results-container">
             <div className="result-card success-header">
@@ -226,7 +229,7 @@ function App() {
 
             <div className="result-card">
               <div className="card-header">
-                <PlayCircle size={20} />
+                <PlayCircle size={20} className="text-primary" />
                 <h3>Enhanced Audio</h3>
               </div>
               <div className="card-body">
@@ -234,7 +237,9 @@ function App() {
                   Your browser does not support the audio element.
                 </audio>
                 <div className="audio-actions">
-                  <a href={result.processedAudioUrl} download className="btn-secondary">Download Enhanced File</a>
+                  <a href={result.processedAudioUrl} download className="btn-secondary">
+                    Download File
+                  </a>
                 </div>
               </div>
             </div>
@@ -242,13 +247,11 @@ function App() {
             {result.transcript && (
               <div className="result-card">
                 <div className="card-header">
-                  <FileText size={20} />
+                  <FileText size={20} className="text-primary" />
                   <h3>Transcription</h3>
                 </div>
                 <div className="card-body">
-                  <div className="transcription-text rtl">
-                    {result.transcript}
-                  </div>
+                  <div className="transcription-text rtl">{result.transcript}</div>
                 </div>
               </div>
             )}
@@ -256,20 +259,18 @@ function App() {
             {result.summary && (
               <div className="result-card">
                 <div className="card-header">
-                  <FileText size={20} />
-                  <h3>AI Summary & Insights</h3>
+                  <FileText size={20} className="text-primary" />
+                  <h3>AI Summary &amp; Insights</h3>
                 </div>
                 <div className="card-body">
-                  <div className="transcription-text">
-                    {result.summary}
-                  </div>
+                  <div className="transcription-text">{result.summary}</div>
                 </div>
               </div>
             )}
 
             {result.aiError && (
-              <div className="error-message neumorphic-error">
-                <AlertCircle size={20} />
+              <div className="error-message">
+                <AlertCircle size={20} style={{ flexShrink: 0 }} />
                 <span>AI processing encountered an error: {result.aiError}</span>
               </div>
             )}
