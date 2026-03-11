@@ -57,84 +57,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 const gcsClient = new Storage();
-const speechClient = new speech.SpeechClient();
-const genAI = new GoogleGenerativeAI(process.env.gemini_api_key);
-
-async function performSTT(gcsUri, clientId) {
-  if (clientId) sendStatus(clientId, `Starting STT job (V1 latest_long)...`);
-  console.log(`Starting STT job (V1 latest_long)...`);
-
-  const config = {
-    encoding: 'MP3',
-    sampleRateHertz: 48000,
-    languageCode: 'ar-SA',
-    model: 'latest_long',
-    enableWordTimeOffsets: true,
-    enableWordConfidence: true,
-    enableAutomaticPunctuation: true
-  };
-
-  const request = {
-    audio: { uri: gcsUri },
-    config: config,
-  };
-
-  try {
-    const [operation] = await speechClient.longRunningRecognize(request);
-    if (clientId) sendStatus(clientId, `Waiting for STT operation to complete...`);
-
-    const [response] = await operation.promise();
-
-    if (!response.results || response.results.length === 0) {
-      throw new Error("No transcription results found.");
-    }
-
-    const transcription = response.results
-      .map(result => result.alternatives[0].transcript)
-      .join('\n');
-
-    if (clientId) sendStatus(clientId, `Transcription finished!`);
-    console.log(`Transcription: ${transcription}`);
-    return transcription;
-  } catch (err) {
-    console.error('STT V1 Error:', err);
-    throw err;
-  }
-}
-
-async function generateSummary(transcription, clientId) {
-  let summary = "Summary unavailable.";
-  let aiError = null;
-
-  if (clientId) sendStatus(clientId, `Summarizing with AI...`);
-  console.log(`Summarizing transcription with AI...`);
-
-  try {
-    // Using gemini-2.5-flash as the fallback model for 'gemma 3' via AI Studio
-    const aiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = `You are a Quranic transcription and summarization assistant.
-Here is a raw Arabic transcript from an audio recitation. It may contain phonetic STT errors.
-Please:
-1. Identify the likely Surah and Ayahs (verses) recited.
-2. Provide a thematic summary of the recited verses in English.
-3. Correct obvious phonetic transcription errors (e.g. confusing الغيظ with الغيب).
-
-Transcript:
-${transcription}`;
-
-    const aiResponse = await aiModel.generateContent(prompt);
-    summary = aiResponse.response.text();
-
-    if (clientId) sendStatus(clientId, `Summarization complete.`);
-    console.log(`Summary generated successfully.`);
-  } catch (aiErr) {
-    console.error('SERVER ERROR DETAILS (Gemini):', aiErr);
-    if (clientId) sendStatus(clientId, `Warning: Summarization failed. See console.`);
-    aiError = aiErr.message || JSON.stringify(aiErr);
-  }
-
-  return { summary, aiError };
-}
+const { performSTT } = require('./middleware/gcp_stt');
+const { generateSummary } = require('./middleware/gemini_summariser');
+const { processAudioDirectly } = require('./middleware/gemini_full');
 
 app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
   if (!req.file) {
@@ -142,6 +67,7 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
   }
 
   const clientId = req.body.clientId;
+  const doNotTrim = req.body.doNotTrim === 'true';
   const inputPath = req.file.path;
   const originalExt = path.extname(req.file.originalname) || '.mp3';
   const finalFilename = `processed-${path.basename(req.file.filename, path.extname(req.file.filename))}${originalExt}`;
@@ -163,11 +89,15 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     const durationToKeep = duration * 0.40;
 
     // Apply FFmpeg filters: trimming, noise reduction, and silence removal
-    if (clientId) sendStatus(clientId, `Applying FFmpeg filters and trimming audio...`);
+    if (clientId) sendStatus(clientId, `Applying FFmpeg filters${doNotTrim ? '' : ' and trimming'} audio...`);
     await new Promise((resolve, reject) => {
-      ffmpeg(inputPath)
-        .setStartTime(startTime)
-        .setDuration(durationToKeep)
+      let command = ffmpeg(inputPath);
+
+      if (!doNotTrim) {
+        command = command.setStartTime(startTime).setDuration(durationToKeep);
+      }
+
+      command
         .audioFilters([
           'afftdn', // fast fourier transform based noise reduction
           'silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB'
@@ -185,25 +115,43 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
         .save(outputPath);
     });
 
-    const bucketName = process.env.GCS_BUCKET_NAME || 'salat-sum-bucket';
-    const gcsDestination = `output/audio-files/${finalFilename}`;
+    // Determine processing option (default to 'gcp_gemini')
+    const processingOption = req.body.processingOption || 'gcp_gemini';
 
-    if (clientId) sendStatus(clientId, `Uploading processed audio to GCS bucket: ${bucketName}...`);
-    console.log(`Uploading processed audio to GCS bucket: ${bucketName}...`);
-    await gcsClient.bucket(bucketName).upload(outputPath, {
-      destination: gcsDestination,
-      metadata: {
-        contentType: 'audio/mpeg', // assuming mp3
-      }
-    });
+    let transcription;
+    let summary;
+    let aiError;
 
-    const gcsUri = `gs://${bucketName}/${gcsDestination}`;
-    if (clientId) sendStatus(clientId, `Uploaded to GCS successfully.`);
-    console.log(`Uploaded to GCS: ${gcsUri}`);
+    if (processingOption === 'gemini_direct') {
+      if (clientId) sendStatus(clientId, `Routing via Direct Gemini Option...`);
+      const result = await processAudioDirectly(outputPath, clientId, sendStatus);
+      transcription = result.transcription;
+      summary = result.summary;
+      aiError = result.aiError;
+    } else {
+      if (clientId) sendStatus(clientId, `Routing via GCP STT + Gemini Summarizer Option...`);
+      const bucketName = process.env.GCS_BUCKET_NAME || 'salat-sum-bucket';
+      const gcsDestination = `output/audio-files/${finalFilename}`;
 
-    // Call the decoupled services
-    const transcription = await performSTT(gcsUri, clientId);
-    const { summary, aiError } = await generateSummary(transcription, clientId);
+      if (clientId) sendStatus(clientId, `Uploading processed audio to GCS bucket: ${bucketName}...`);
+      console.log(`Uploading processed audio to GCS bucket: ${bucketName}...`);
+      await gcsClient.bucket(bucketName).upload(outputPath, {
+        destination: gcsDestination,
+        metadata: {
+          contentType: 'audio/mpeg', // assuming mp3
+        }
+      });
+
+      const gcsUri = `gs://${bucketName}/${gcsDestination}`;
+      if (clientId) sendStatus(clientId, `Uploaded to GCS successfully.`);
+      console.log(`Uploaded to GCS: ${gcsUri}`);
+
+      // Call the decoupled services
+      transcription = await performSTT(gcsUri, clientId, sendStatus);
+      const summaryResult = await generateSummary(transcription, clientId, sendStatus);
+      summary = summaryResult.summary;
+      aiError = summaryResult.aiError;
+    }
 
     const processedAudioUrl = `http://localhost:${port}/uploads/${finalFilename}`;
 

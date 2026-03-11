@@ -8,6 +8,8 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [processingOption, setProcessingOption] = useState('gcp_gemini');
+  const [doNotTrim, setDoNotTrim] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Applying FFmpeg filters...');
   const [clientId] = useState(() => Date.now().toString() + Math.random().toString(36).substring(2));
   const fileInputRef = useRef(null);
@@ -64,6 +66,8 @@ function App() {
     const formData = new FormData();
     formData.append('audio', file);
     formData.append('clientId', clientId);
+    formData.append('processingOption', processingOption);
+    formData.append('doNotTrim', doNotTrim);
 
     try {
       const response = await axios.post('http://localhost:3001/api/process-audio', formData, {
@@ -138,6 +142,44 @@ function App() {
           <div className="error-message">
             <AlertCircle size={20} />
             <span>{error}</span>
+          </div>
+        )}
+
+        {file && !isUploading && !result && (
+          <div className="options-container" style={{ margin: '1.5rem 0', display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: 'var(--surface)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <div className="processing-options" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Processing Option</h4>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  value="gcp_gemini"
+                  checked={processingOption === 'gcp_gemini'}
+                  onChange={(e) => setProcessingOption(e.target.value)}
+                />
+                Option 1: GCP for STT -&gt; Gemini for Summary
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  value="gemini_direct"
+                  checked={processingOption === 'gemini_direct'}
+                  onChange={(e) => setProcessingOption(e.target.value)}
+                />
+                Option 2: Send trimmed audio directly to Gemini
+              </label>
+            </div>
+
+            <div className="trim-option" style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+              <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Audio Settings</h4>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={doNotTrim}
+                  onChange={(e) => setDoNotTrim(e.target.checked)}
+                />
+                Do not trim audio
+              </label>
+            </div>
           </div>
         )}
 
