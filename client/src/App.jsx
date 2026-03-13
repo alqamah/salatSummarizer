@@ -28,10 +28,10 @@ function parseVerses(versesText) {
   let current = {};
   for (const line of lines) {
     const trimmed = line.trim();
-    // Match **Ayah N:** Arabic (bold label with number)
-    const ayahMatch = trimmed.match(/^\*\*Ayah\s+\d+:\*\*\s*(.+)/);
-    // Match **Translation:** English
-    const transMatch = trimmed.match(/^\*\*Translation:\*\*\s*(.+)/);
+    // Resilient regex: handles optional brackets, varying spaces, and colon before/after closing **
+    const ayahMatch = trimmed.match(/^\*\*Ayah\s*(?:\[)?\d+(?:\])?\s*:?\*\*:?\s*(.+)/i);
+    // Resilient regex: handles colon before/after closing **
+    const transMatch = trimmed.match(/^\*\*Translation\s*:?\*\*:?\s*(.+)/i);
     if (ayahMatch) {
       if (current.arabic) verses.push(current); // flush previous
       current = { arabic: ayahMatch[1].trim() };

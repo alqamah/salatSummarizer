@@ -63,28 +63,32 @@ async function processAudioDirectly(audioFilePath, clientId, sendStatus, languag
 
         const prompt = "Analyze the provided audio according to your system instructions.";
 
-        const aiResponse = await aiModel.generateContent([
-            {
-                fileData: {
-                    mimeType: uploadResult.file.mimeType,
-                    fileUri: uploadResult.file.uri
-                }
-            },
-            prompt
-        ]);
-
-        const resultText = aiResponse.response.text();
-        summary = resultText;
-        transcription = null; // No separate transcription for direct Gemini path; summary contains the full structured response.
-
-        if (clientId && sendStatus) sendStatus(clientId, `Gemini processing complete.`);
-        console.log(`Gemini audio processing generated successfully.`);
-
-        // Clean up file from Gemini after processing
+        // Use try...finally to GUARANTEE cleanup of the uploaded file, even if generation fails
         try {
-            await aiFileManager.deleteFile(uploadResult.file.name);
-        } catch (err) {
-            console.error("Failed to delete file from Gemini:", err);
+            const aiResponse = await aiModel.generateContent([
+                {
+                    fileData: {
+                        mimeType: uploadResult.file.mimeType,
+                        fileUri: uploadResult.file.uri
+                    }
+                },
+                prompt
+            ]);
+
+            const resultText = aiResponse.response.text();
+            summary = resultText;
+            transcription = null; // No separate transcription for direct Gemini path; summary contains the full structured response.
+
+            if (clientId && sendStatus) sendStatus(clientId, `Gemini processing complete.`);
+            console.log(`Gemini audio processing generated successfully.`);
+        } finally {
+            // GUARANTEED CLEANUP: runs whether generateContent succeeds or throws
+            try {
+                await aiFileManager.deleteFile(uploadResult.file.name);
+                console.log(`Successfully purged ${uploadResult.file.name} from AI Studio storage.`);
+            } catch (cleanupErr) {
+                console.error("CRITICAL: Failed to delete file from Gemini:", cleanupErr);
+            }
         }
 
     } catch (aiErr) {
