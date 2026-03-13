@@ -37,4 +37,5 @@
 * **deployment**
 * **sumamariser**: improve the summariser system instruction to account for the other verses. Add options to view verse only, summary only, transiteration (?) along with the same options for the entire surah
 * **TTS**
-* **add interface to activate recording on the frontend**: use browser's media recorder api to record audio and send it to the backend. refer to roadmap
+* **add interface to activate recording on the frontend**: use browser's media recorder api to record audio and send it to the backend. refer to roadmap ✅
+* **Add multi-lang support (hindi and urdu) for output**

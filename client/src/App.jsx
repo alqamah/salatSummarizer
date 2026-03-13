@@ -50,7 +50,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [processingOption, setProcessingOption] = useState('gcp_gemini');
+  const [processingOption, setProcessingOption] = useState('gemini_direct');
   const [doNotTrim, setDoNotTrim] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Applying FFmpeg filters...');
   const [clientId] = useState(() => Date.now().toString() + Math.random().toString(36).substring(2));
@@ -189,6 +189,7 @@ function App() {
                 <div className="status-indicator">
                   <Upload className="icon" size={52} />
                   <h3>Click or drag to upload</h3>
+                  <p>Upload the recorded Namaz Audio file here.</p>
                   <p>Supports MP3, WAV, M4A up to 50 MB</p>
                 </div>
               )}
@@ -219,15 +220,7 @@ function App() {
             <div className="options-grid">
               <div className="processing-options">
                 <h4 className="options-section-title">Processing Method</h4>
-                <label>
-                  <input
-                    type="radio"
-                    value="gcp_gemini"
-                    checked={processingOption === 'gcp_gemini'}
-                    onChange={(e) => setProcessingOption(e.target.value)}
-                  />
-                  GCP Speech-to-Text → Gemini Summary
-                </label>
+                {/* GCP Speech-to-Text option temporarily disabled */}
                 <label>
                   <input
                     type="radio"
@@ -369,7 +362,7 @@ function App() {
                     <span><strong>Summary failed:</strong> {result.aiError}</span>
                   </div>
                   <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.9 }}>
-                    Try refreshing the page and retrying with the <strong>{processingOption === 'gcp_gemini' ? 'Send audio directly to Gemini' : 'GCP Speech-to-Text → Gemini'}</strong> method instead.
+                    Try refreshing the page and retrying. If the issue persists, the audio may be unclear or silent.
                   </p>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <button
@@ -383,12 +376,11 @@ function App() {
                       className="btn-secondary"
                       style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
                       onClick={() => {
-                        setProcessingOption(processingOption === 'gcp_gemini' ? 'gemini_direct' : 'gcp_gemini');
                         setResult(null);
                         setError(null);
                       }}
                     >
-                      Switch to {processingOption === 'gcp_gemini' ? 'Gemini Direct' : 'GCP + Gemini'} &amp; Retry
+                      ↺ Try Again
                     </button>
                   </div>
                 </div>

@@ -25,10 +25,17 @@ async function processAudioDirectly(audioFilePath, clientId, sendStatus) {
         console.log(`Processing with Gemini AI (File URI: ${uploadResult.file.uri})...`);
 
         const aiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const prompt = `You are an expert Quranic transcription and exegesis AI. The audio input provided is a trimmed excerpt of a longer recitation, strategically cut to minimize input token consumption.
+        const prompt = `You are an expert Quranic transcription and exegesis AI.
+
+**CRITICAL RULES — follow these before anything else:**
+1. **No Hallucination:** You must ONLY work with what you can actually hear in the audio. Never guess, fabricate, or infer verse content that is not clearly audible. If you are uncertain, say so explicitly.
+2. **Blank / Silent Audio:** If the audio is silent, contains only background noise, or no clear Quranic recitation can be detected, you MUST stop immediately and respond with exactly:
+   ⚠️ The audio appears to be empty or contains no recognizable Quranic recitation. Please upload a valid recording.
+   Do not attempt further analysis or produce the markdown structure below.
+3. **Uncertain Identification:** If you can hear audio but cannot confidently identify the Surah/Ayahs, state "Verse identification uncertain — audio may be unclear" rather than guessing.
 
 **Core Processing Logic (\`updated-gemini-context\`):**
-* Identify the exact Surah and Ayahs (verses) recited in the raw audio.
+* Identify the exact Surah and Ayahs (verses) recited in the audio — only if clearly audible.
 * Expand the textual boundaries of these identified verses by adding approximately 100% more verses immediately preceding the recited segment, and 100% more verses immediately following it.
 * For example, if the audio contains 4 verses, you must retrieve and include the 4 preceding verses and the 4 subsequent verses from the Quranic text.
 * This newly expanded verse range is strictly defined as the \`updated-gemini-context\`. All subsequent analysis and output must be based entirely on this \`updated-gemini-context\`.

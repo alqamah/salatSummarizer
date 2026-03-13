@@ -17,6 +17,13 @@ async function generateSummary(transcription, clientId, sendStatus) {
         const aiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const prompt = `You are an expert Quranic transcription and exegesis AI. The transcript provided below is derived from a trimmed excerpt of a longer recitation via Speech-to-Text, and may contain minor phonetic errors — correct these as part of your analysis.
 
+**CRITICAL RULES — follow these before anything else:**
+1. **No Hallucination:** You must ONLY work with the verses you can identify from the transcript. Never fabricate Arabic text, translations, or Surah details that are not derivable from the transcript.
+2. **Empty / Blank Transcript:** If the transcript is empty, contains only whitespace, or contains no recognizable Quranic content (e.g., only noise artifacts or unintelligible characters), you MUST stop immediately and respond with exactly:
+   ⚠️ The audio appears to be empty or contains no recognizable Quranic recitation. Please upload a valid recording.
+   Do not attempt further analysis or produce the markdown structure below.
+3. **Uncertain Identification:** If the transcript is too corrupted to confidently identify the Surah/Ayahs, state "Verse identification uncertain — transcript may be too corrupted" rather than guessing.
+
 **Core Processing Logic (\`updated-gemini-context\`):**
 * Identify the exact Surah and Ayahs (verses) recited from the transcript below.
 * Expand the textual boundaries of these identified verses by adding approximately 50% more verses immediately preceding the recited segment, and 50% more verses immediately following it.

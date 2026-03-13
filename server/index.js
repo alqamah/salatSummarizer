@@ -9,17 +9,6 @@ const speech = require('@google-cloud/speech');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config({ path: path.join(__dirname, 'credentials', '.env') });
 
-// ── Render / production: write GCP service-account key from env var ──────────
-// Local dev: GOOGLE_APPLICATION_CREDENTIALS is set inside credentials/.env
-// Render:    Add GOOGLE_CREDENTIALS_JSON env var (paste the full key JSON)
-if (process.env.GOOGLE_CREDENTIALS_JSON && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  const tmpKeyPath = path.join('/tmp', 'gcp-key.json');
-  fs.writeFileSync(tmpKeyPath, process.env.GOOGLE_CREDENTIALS_JSON);
-  process.env.GOOGLE_APPLICATION_CREDENTIALS = tmpKeyPath;
-  console.log('GCP credentials written from env var to', tmpKeyPath);
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
 const app = express();
 const port = process.env.PORT || 3001;
 
