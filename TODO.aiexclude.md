@@ -39,3 +39,4 @@
 * **TTS**
 * **add interface to activate recording on the frontend**: use browser's media recorder api to record audio and send it to the backend. refer to roadmap ✅
 * **Add multi-lang support (hindi and urdu) for output**
+* **Empty audio handling**
