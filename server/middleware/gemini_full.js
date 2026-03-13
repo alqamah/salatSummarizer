@@ -83,12 +83,12 @@ async function processAudioDirectly(audioFilePath, clientId, sendStatus, languag
             console.log(`Gemini audio processing generated successfully.`);
         } finally {
             // GUARANTEED CLEANUP: runs whether generateContent succeeds or throws
-            try {
-                await aiFileManager.deleteFile(uploadResult.file.name);
-                console.log(`Successfully purged ${uploadResult.file.name} from AI Studio storage.`);
-            } catch (cleanupErr) {
-                console.error("CRITICAL: Failed to delete file from Gemini:", cleanupErr);
-            }
+            // try {
+            //     await aiFileManager.deleteFile(uploadResult.file.name);
+            //     console.log(`Successfully purged ${uploadResult.file.name} from AI Studio storage.`);
+            // } catch (cleanupErr) {
+            //     console.error("CRITICAL: Failed to delete file from Gemini:", cleanupErr);
+            // }
         }
 
     } catch (aiErr) {
