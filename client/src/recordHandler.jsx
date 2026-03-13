@@ -49,14 +49,17 @@ const RecordHandler = ({ onRecordingComplete }) => {
     };
 
     return (
-        <div className="record-handler">
+        <div className="interactive-glass-card record-handler">
             {/* Idle state — not recording, nothing saved */}
             {!isRecording && !audioBlob && (
                 <>
                     <div className="status-indicator">
                         <Mic className="icon text-primary" size={52} />
                         <h3>Record Audio</h3>
-                        <p>Click start to begin recording from your microphone</p>
+                        <div className="instruction-group">
+                            <p>Click <strong>Start</strong> at the beginning of your prayer to begin recording.</p>
+                            <p>Once finished, click <strong>Stop</strong> to finalize the audio.</p>
+                        </div>
                     </div>
                     <button className="btn-primary" onClick={startRecording} type="button">
                         <Mic size={18} /> Start Recording

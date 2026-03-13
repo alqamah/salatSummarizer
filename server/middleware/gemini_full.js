@@ -7,7 +7,7 @@ const apiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
 const genAI = new GoogleGenerativeAI(apiKey);
 const aiFileManager = new GoogleAIFileManager(apiKey);
 
-async function processAudioDirectly(audioFilePath, clientId, sendStatus) {
+async function processAudioDirectly(audioFilePath, clientId, sendStatus, language = 'English') {
     let summary = "Summary unavailable.";
     let transcription = "Transcription unavailable (direct Gemini processing).";
     let aiError = null;
@@ -24,42 +24,44 @@ async function processAudioDirectly(audioFilePath, clientId, sendStatus) {
         if (clientId && sendStatus) sendStatus(clientId, `Processing audio with Gemini AI...`);
         console.log(`Processing with Gemini AI (File URI: ${uploadResult.file.uri})...`);
 
-        const aiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const prompt = `You are an expert Quranic transcription and exegesis AI.
+        const systemInstruction = `You are an expert Quranic transcription and exegesis AI. The audio input provided is a trimmed excerpt of a longer recitation, strategically cut to minimize input token consumption. 
 
-**CRITICAL RULES — follow these before anything else:**
-1. **No Hallucination:** You must ONLY work with what you can actually hear in the audio. Never guess, fabricate, or infer verse content that is not clearly audible. If you are uncertain, say so explicitly.
-2. **Blank / Silent Audio:** If the audio is silent, contains only background noise, or no clear Quranic recitation can be detected, you MUST stop immediately and respond with exactly:
-   ⚠️ The audio appears to be empty or contains no recognizable Quranic recitation. Please upload a valid recording.
-   Do not attempt further analysis or produce the markdown structure below.
-3. **Uncertain Identification:** If you can hear audio but cannot confidently identify the Surah/Ayahs, state "Verse identification uncertain — audio may be unclear" rather than guessing.
+**Output Language Constraint:**
+* The body text of the summary, the translated verses, and the Surah name MUST be provided in the following language: ${language}.
+* CRITICAL: Do NOT translate the markdown headers (e.g., "### Surah Information") or the bold structural labels (e.g., "**Surah:**", "**Verses Covered:**", "**Ayah [Number]:**", "**Translation:**"). They MUST remain in exactly English as requested to allow for programmatic parsing.
 
-**Core Processing Logic (\`updated-gemini-context\`):**
-* Identify the exact Surah and Ayahs (verses) recited in the audio — only if clearly audible.
-* Expand the textual boundaries of these identified verses by adding approximately 100% more verses immediately preceding the recited segment, and 100% more verses immediately following it.
-* For example, if the audio contains 4 verses, you must retrieve and include the 4 preceding verses and the 4 subsequent verses from the Quranic text.
+* Expand the textual boundaries of these identified verses by adding approximately 100% more verses immediately preceding the recited segment, and 100% more verses immediately following it. 
+* For example, if the audio contains 4 verses, you must retrieve and include the 4 preceding verses and the 4 subsequent verses from the Quranic text (totaling 12 verses in context).
 * This newly expanded verse range is strictly defined as the \`updated-gemini-context\`. All subsequent analysis and output must be based entirely on this \`updated-gemini-context\`.
 
 **Output Constraints:**
-* Strictly limit the response generation to a maximum of 1000 tokens.
+* Strictly limit the response generation to a maximum of 1000 tokens. 
 * Deliver the output in formatted Markdown.
 * Ensure the Tafseer is concise, objective, and thematic.
 
-**Required Markdown Structure:**
+**Required Markdown Structure (Keep headers in English!):**
 
 ### Surah Information
-* **Surah:** [Surah Name] ([Surah Number])
+* **Surah:** [Surah Name in ${language}] ([Surah Number])
 * **Verses Covered:** [Start Ayah] - [End Ayah] (This must reflect the expanded \`updated-gemini-context\`)
 
-### Summary Section (Tafseer)
-* Provide a high-impact exegesis of the \`updated-gemini-context\`.
+### Summary Section
+* Provide a high-impact exegesis of the \`updated-gemini-context\` in ${language}.
 * Focus on the core theological themes, historical context, and the primary message connecting these specific verses.
 
-### Original Text and Translation
+### Original Text
 * Provide the \`updated-gemini-context\` line by line.
 * Format each line exactly as follows:
   **Ayah [Number]:** [Arabic Text]
-  **Translation:** [Direct English Translation]`;
+  **Translation:** [Direct ${language} Translation]
+
+**CRITICAL RULES:**
+1. **Blank / Silent Audio:** If the audio is silent or contains no recognizable Quranic recitation, respond exactly with: ⚠️ The audio appears to be empty or contains no recognizable Quranic recitation. Please upload a valid recording.
+2. **Uncertain Identification:** If the audio is unclear, state "Verse identification uncertain — audio may be unclear".`;
+
+        const aiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction });
+
+        const prompt = "Analyze the provided audio according to your system instructions.";
 
         const aiResponse = await aiModel.generateContent([
             {

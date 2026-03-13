@@ -45,6 +45,52 @@ function parseVerses(versesText) {
   return verses;
 }
 
+// Custom dropdown that inherits the app's font and theming (native <select> options can't be styled)
+function CustomSelect({ value, onChange, options }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const selected = options.find(o => o.value === value);
+
+  // Close on outside click
+  React.useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="custom-select" style={{ position: 'relative' }}>
+      <button
+        type="button"
+        className={`custom-select__trigger ${open ? 'open' : ''}`}
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span>{selected?.label}</span>
+        <svg className="custom-select__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open && (
+        <ul className="custom-select__menu" role="listbox">
+          {options.map(opt => (
+            <li
+              key={opt.value}
+              role="option"
+              aria-selected={opt.value === value}
+              className={`custom-select__option ${opt.value === value ? 'selected' : ''}`}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+            >
+              {opt.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -52,9 +98,10 @@ function App() {
   const [error, setError] = useState(null);
   const [processingOption, setProcessingOption] = useState('gemini_direct');
   const [doNotTrim, setDoNotTrim] = useState(false);
+  const [language, setLanguage] = useState('English');
   const [statusMessage, setStatusMessage] = useState('Applying FFmpeg filters...');
   const [clientId] = useState(() => Date.now().toString() + Math.random().toString(36).substring(2));
-  const [inputMode, setInputMode] = useState('upload');
+  const [inputMode, setInputMode] = useState('record');
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -109,6 +156,7 @@ function App() {
     formData.append('clientId', clientId);
     formData.append('processingOption', processingOption);
     formData.append('doNotTrim', doNotTrim);
+    formData.append('language', language);
 
     try {
       const response = await axios.post(`${apiUrl}/api/process-audio`, formData, {
@@ -141,25 +189,34 @@ function App() {
       <main>
         <div className="input-mode-toggle">
           <button
-            className={`mode-btn ${inputMode === 'upload' ? 'active' : ''}`}
-            onClick={() => setInputMode('upload')}
-            type="button"
-          >
-            Upload Audio
-          </button>
-          <button
             className={`mode-btn ${inputMode === 'record' ? 'active' : ''}`}
             onClick={() => setInputMode('record')}
             type="button"
           >
             Record Audio
           </button>
+          <button
+            className={`mode-btn ${inputMode === 'upload' ? 'active' : ''}`}
+            onClick={() => setInputMode('upload')}
+            type="button"
+          >
+            Upload Audio
+          </button>
         </div>
 
-        {/* Upload or Record panel */}
-        {inputMode === 'upload' ? (
+        {/* Record or Upload panel */}
+        {inputMode === 'record' ? (
+          <RecordHandler
+            onRecordingComplete={(recordedFile) => {
+              setFile(recordedFile);
+              setError(null);
+              setResult(null);
+              setInputMode('upload');
+            }}
+          />
+        ) : (
           <section
-            className={`upload-zone glass-panel ${file ? 'has-file' : ''} ${isUploading ? 'uploading' : ''}`}
+            className={`interactive-glass-card upload-zone ${file ? 'has-file' : ''} ${isUploading ? 'uploading' : ''}`}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onClick={() => !isUploading && fileInputRef.current?.click()}
@@ -195,15 +252,6 @@ function App() {
               )}
             </div>
           </section>
-        ) : (
-          <RecordHandler
-            onRecordingComplete={(recordedFile) => {
-              setFile(recordedFile);
-              setError(null);
-              setResult(null);
-              setInputMode('upload');
-            }}
-          />
         )}
 
         {/* Error banner */}
@@ -220,7 +268,7 @@ function App() {
             <div className="options-grid">
               <div className="processing-options">
                 <h4 className="options-section-title">Processing Method</h4>
-                {/* GCP Speech-to-Text option temporarily disabled */}
+                {/* Method 2 (temporarily disabled): GCP STT  -> Vector Search -> Tafseer API*/}
                 <label>
                   <input
                     type="radio"
@@ -228,19 +276,47 @@ function App() {
                     checked={processingOption === 'gemini_direct'}
                     onChange={(e) => setProcessingOption(e.target.value)}
                   />
-                  Send audio directly to Gemini
+                  Method 1: Using Gemini 2.5 Flash
                 </label>
+                {/* Method 2 (temporarily disabled): GCP STT  -> Vector Search -> Tafseer API*/}
+                <label className="disabled">
+                  <input
+                    disabled
+                    style={{ opacity: 0.5 }}
+                    className="disabled"
+                    type="radio"
+                    value="gcp_stt"
+                    checked={processingOption === 'gcp_stt'}
+                    onChange={(e) => setProcessingOption(e.target.value)}
+                  />
+                  <p>Method 2: Using GCP STT & Vector Search</p>
+                </label>
+
               </div>
 
               <div className="trim-option">
-                <h4 className="options-section-title">Audio Settings</h4>
+                <h4 className="options-section-title">Output Language</h4>
+                <div style={{ padding: '0.25rem 0' }}>
+                  <CustomSelect
+                    value={language}
+                    onChange={setLanguage}
+                    options={[
+                      { value: 'English', label: 'English' },
+                      { value: 'Urdu', label: 'Urdu' },
+                      { value: 'Hindi', label: 'Hindi' },
+                      { value: 'Nepali', label: 'Nepali' },
+                    ]}
+                  />
+                </div>
+                
+                <h4 className="options-section-title" style={{ marginTop: '1rem' }}>Audio Settings</h4>
                 <label>
                   <input
                     type="checkbox"
                     checked={doNotTrim}
                     onChange={(e) => setDoNotTrim(e.target.checked)}
                   />
-                  Do not trim audio
+                  Do Not Trim Audio (incurs higher processing cost)
                 </label>
               </div>
             </div>

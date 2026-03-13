@@ -68,6 +68,7 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
 
   const clientId = req.body.clientId;
   const doNotTrim = req.body.doNotTrim === 'true';
+  const language = req.body.language || 'English';
   const inputPath = req.file.path;
   const originalExt = path.extname(req.file.originalname) || '.mp3';
   const finalFilename = `processed-${path.basename(req.file.filename, path.extname(req.file.filename))}${originalExt}`;
@@ -124,7 +125,7 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
 
     if (processingOption === 'gemini_direct') {
       if (clientId) sendStatus(clientId, `Routing via Direct Gemini Option...`);
-      const result = await processAudioDirectly(outputPath, clientId, sendStatus);
+      const result = await processAudioDirectly(outputPath, clientId, sendStatus, language);
       transcription = result.transcription;
       summary = result.summary;
       aiError = result.aiError;
