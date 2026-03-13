@@ -93,7 +93,8 @@ function App() {
     setError(null);
     setStatusMessage('Starting upload...');
 
-    const eventSource = new EventSource(`http://localhost:3001/api/status?clientId=${clientId}`);
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const eventSource = new EventSource(`${apiUrl}/api/status?clientId=${clientId}`);
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -110,7 +111,7 @@ function App() {
     formData.append('doNotTrim', doNotTrim);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/process-audio', formData, {
+      const response = await axios.post(`${apiUrl}/api/process-audio`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (response.data.success) {

@@ -12,7 +12,7 @@ require('dotenv').config({ path: path.join(__dirname, 'credentials', '.env') });
 const app = express();
 const port = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 const clients = {};
@@ -153,7 +153,8 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
       aiError = summaryResult.aiError;
     }
 
-    const processedAudioUrl = `http://localhost:${port}/uploads/${finalFilename}`;
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+    const processedAudioUrl = `${baseUrl}/uploads/${finalFilename}`;
 
     // Clean up the original uploaded file
     fs.unlink(inputPath, (err) => {

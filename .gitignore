@@ -6,6 +6,8 @@
 # Environment variables
 
 /server/.env
+# client/.env has no secrets (just localhost fallback) — commit it
+!/client/.env
 
 # Build outputs
 /client/dist
