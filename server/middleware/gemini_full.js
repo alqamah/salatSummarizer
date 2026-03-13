@@ -29,8 +29,8 @@ async function processAudioDirectly(audioFilePath, clientId, sendStatus) {
 
 **Core Processing Logic (\`updated-gemini-context\`):**
 * Identify the exact Surah and Ayahs (verses) recited in the raw audio.
-* Expand the textual boundaries of these identified verses by adding approximately 50% more verses immediately preceding the recited segment, and 50% more verses immediately following it.
-* For example, if the audio contains 4 verses, you must retrieve and include the 2 preceding verses and the 2 subsequent verses from the Quranic text.
+* Expand the textual boundaries of these identified verses by adding approximately 100% more verses immediately preceding the recited segment, and 100% more verses immediately following it.
+* For example, if the audio contains 4 verses, you must retrieve and include the 4 preceding verses and the 4 subsequent verses from the Quranic text.
 * This newly expanded verse range is strictly defined as the \`updated-gemini-context\`. All subsequent analysis and output must be based entirely on this \`updated-gemini-context\`.
 
 **Output Constraints:**
