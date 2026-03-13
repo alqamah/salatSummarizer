@@ -316,7 +316,7 @@ function App() {
                     checked={doNotTrim}
                     onChange={(e) => setDoNotTrim(e.target.checked)}
                   />
-                  Do Not Trim Audio (incurs higher processing cost)
+                  Do Not Trim Audio (better accuracy, incurs higher processing cost)
                 </label>
               </div>
             </div>

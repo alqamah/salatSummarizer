@@ -42,4 +42,4 @@
 * **Add multi-lang support (nepali, hindi and urdu) for output**
 * **Empty audio handling**
 * **More Trimming Options**
-* 
+* **Update System Instruction**: use separate instructions based on whether the audio is trimmed or not. Use exact verses for non-trimmed audio. Use margin of 100% on either side for trimmed audio 

@@ -35,7 +35,7 @@ async function processAudioDirectly(audioFilePath, clientId, sendStatus, languag
 * This newly expanded verse range is strictly defined as the \`updated-gemini-context\`. All subsequent analysis and output must be based entirely on this \`updated-gemini-context\`.
 
 **Output Constraints:**
-* Strictly limit the response generation to a maximum of 1000 tokens. 
+* Strictly limit the response generation to a maximum of 3000 tokens. 
 * Deliver the output in formatted Markdown.
 * Ensure the Tafseer is concise, objective, and thematic.
 
