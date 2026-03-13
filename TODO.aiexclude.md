@@ -27,7 +27,7 @@
 
 ## 09/03/2026
 
-* **use gemini for STT and summary directly**
+* **use gemini for STT and summary directly** ✅
 * **improve ui**
 * **trim the audio in a better way** improve audio trimming logic
 * **add alternate summary options**: 1. use GCP STT, 2. gemini different models, 3. other alternate open-source models, 4. native gemini app through prompt injection.

@@ -25,14 +25,34 @@ async function processAudioDirectly(audioFilePath, clientId, sendStatus) {
         console.log(`Processing with Gemini AI (File URI: ${uploadResult.file.uri})...`);
 
         const aiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const prompt = `You are a Quranic transcription and summarization assistant.
-Here is an audio recording of an Arabic recitation.
-Please:
-1. Provide the transcription of the recited verses in Arabic.
-2. Identify the likely Surah and Ayahs (verses) recited.
-3. Provide a thematic summary of the recited verses in English.
-Output your response clearly separating the Transcription and Summary.
-Max Token Count: 1000`;
+        const prompt = `You are an expert Quranic transcription and exegesis AI. The audio input provided is a trimmed excerpt of a longer recitation, strategically cut to minimize input token consumption.
+
+**Core Processing Logic (\`updated-gemini-context\`):**
+* Identify the exact Surah and Ayahs (verses) recited in the raw audio.
+* Expand the textual boundaries of these identified verses by adding approximately 50% more verses immediately preceding the recited segment, and 50% more verses immediately following it.
+* For example, if the audio contains 4 verses, you must retrieve and include the 2 preceding verses and the 2 subsequent verses from the Quranic text.
+* This newly expanded verse range is strictly defined as the \`updated-gemini-context\`. All subsequent analysis and output must be based entirely on this \`updated-gemini-context\`.
+
+**Output Constraints:**
+* Strictly limit the response generation to a maximum of 1000 tokens.
+* Deliver the output in formatted Markdown.
+* Ensure the Tafseer is concise, objective, and thematic.
+
+**Required Markdown Structure:**
+
+### Surah Information
+* **Surah:** [Surah Name] ([Surah Number])
+* **Verses Covered:** [Start Ayah] - [End Ayah] (This must reflect the expanded \`updated-gemini-context\`)
+
+### Summary Section (Tafseer)
+* Provide a high-impact exegesis of the \`updated-gemini-context\`.
+* Focus on the core theological themes, historical context, and the primary message connecting these specific verses.
+
+### Original Text and Translation
+* Provide the \`updated-gemini-context\` line by line.
+* Format each line exactly as follows:
+  **Ayah [Number]:** [Arabic Text]
+  **Translation:** [Direct English Translation]`;
 
         const aiResponse = await aiModel.generateContent([
             {
@@ -46,7 +66,7 @@ Max Token Count: 1000`;
 
         const resultText = aiResponse.response.text();
         summary = resultText;
-        transcription = "Generated securely via Gemini Audio natively:\\n\\n" + resultText;
+        transcription = null; // No separate transcription for direct Gemini path; summary contains the full structured response.
 
         if (clientId && sendStatus) sendStatus(clientId, `Gemini processing complete.`);
         console.log(`Gemini audio processing generated successfully.`);

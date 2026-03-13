@@ -485,7 +485,7 @@ input[type="checkbox"]:checked::before {
   font-family: var(--font-heading);
   font-size: 1.4rem;
   font-weight: 600;
-  color: var(--color-success);
+  color: var(--color-text);
   letter-spacing: 0.02em;
 }
 
@@ -536,6 +536,120 @@ input[type="checkbox"]:checked::before {
   text-align: right;
   direction: rtl;
 }
+
+/* ─── Markdown rendered output ───────────────────────── */
+.markdown-body {
+  color: var(--color-text);
+  line-height: 1.8;
+  font-size: 0.97rem;
+}
+
+.markdown-body h3 {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-rose-dark);
+  margin: 0.25rem 0 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.markdown-body h4 {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0.75rem 0 0.25rem;
+}
+
+.markdown-body p {
+  margin-bottom: 0.85rem;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.markdown-body li {
+  margin-bottom: 0.4rem;
+}
+
+.markdown-body strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.markdown-body em {
+  color: var(--color-rose-dark);
+}
+
+.markdown-body code {
+  background: rgba(181, 83, 106, 0.08);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid rgba(181, 83, 106, 0.15);
+  margin: 1rem 0;
+}
+
+/* Verses section — two-column flex layout */
+.verses-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.verse-pair {
+  display: flex;
+  flex-direction: row;
+  gap: 1.25rem;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(181, 83, 106, 0.07);
+}
+
+.verse-arabic {
+  flex: 1;
+  text-align: right;
+  direction: rtl;
+  font-size: 1.1rem;
+  font-family: 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', serif;
+  line-height: 2;
+  color: var(--color-text);
+  letter-spacing: 0.03em;
+}
+
+.verse-english {
+  flex: 1;
+  text-align: left;
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--color-muted);
+  padding-top: 0.2rem; /* optical alignment with Arabic baseline */
+}
+
+@media (max-width: 640px) {
+  .verse-pair {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .verse-arabic {
+    font-size: 1.05rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(181, 83, 106, 0.1);
+  }
+  .verse-english {
+    padding-top: 0;
+  }
+}
+
 
 /* ─── Record Handler ─────────────────────────────────── */
 .record-handler {
