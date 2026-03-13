@@ -99,10 +99,10 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
       }
 
       command
-        .audioFilters([
-          'afftdn', // fast fourier transform based noise reduction
-          'silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB'
-        ])
+        // .audioFilters([
+        //   'afftdn', // fast fourier transform based noise reduction
+        //   'silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB'
+        // ])
         .on('end', () => {
           if (clientId) sendStatus(clientId, 'FFmpeg processing completed successfully.');
           console.log('FFmpeg processing completed successfully.');
