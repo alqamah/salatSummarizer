@@ -60,6 +60,7 @@ const gcsClient = new Storage();
 const { performSTT } = require('./middleware/gcp_stt');
 const { generateSummary } = require('./middleware/gemini_summariser');
 const { processAudioDirectly } = require('./middleware/gemini_full');
+const { trimAudio } = require('./middleware/ffmpegFilters');
 
 app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
   if (!req.file) {
@@ -68,6 +69,8 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
 
   const clientId = req.body.clientId;
   const doNotTrim = req.body.doNotTrim === 'true';
+  const trimFlag = req.body.trimFlag !== undefined ? Number(req.body.trimFlag) : 0;
+  const noiseFlag = req.body.noiseFlag !== undefined ? Number(req.body.noiseFlag) : 0;
   const language = req.body.language || 'English';
   const inputPath = req.file.path;
   const originalExt = path.extname(req.file.originalname) || '.mp3';
@@ -78,43 +81,22 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
     if (clientId) sendStatus(clientId, `Processing file: ${req.file.originalname}`);
     console.log(`Processing file: ${inputPath}`);
 
-    // Get audio duration
-    const duration = await new Promise((resolve, reject) => {
-      ffmpeg.ffprobe(inputPath, (err, metadata) => {
-        if (err) return reject(err);
-        resolve(metadata.format.duration);
-      });
-    });
+    // Pass the audio to ffmpeg along with trimFlag and noiseFlag
+    if (clientId) sendStatus(clientId, 'Applying FFmpeg filters...');
+    const processedAudioPath = await trimAudio(inputPath, noiseFlag, trimFlag);
 
-    const startTime = duration * 0.30;
-    const durationToKeep = duration * 0.40;
-
-    // Apply FFmpeg filters: trimming, noise reduction, and silence removal
-    if (clientId) sendStatus(clientId, `Applying FFmpeg filters${doNotTrim ? '' : ' and trimming'} audio...`);
-    await new Promise((resolve, reject) => {
-      let command = ffmpeg(inputPath);
-
-      if (!doNotTrim) {
-        command = command.setStartTime(startTime).setDuration(durationToKeep);
+    // Ensure the processed audio is saved to our expected outputPath
+    if (processedAudioPath !== outputPath) {
+      if (processedAudioPath !== inputPath && fs.existsSync(inputPath)) {
+        // We can safely delete the original temp inputPath if a new file was created
+        fs.unlinkSync(inputPath);
       }
+      fs.renameSync(processedAudioPath, outputPath);
+    } else if (inputPath !== outputPath) {
+      fs.renameSync(inputPath, outputPath);
+    }
 
-      command
-        // .audioFilters([
-        //   'afftdn', // fast fourier transform based noise reduction
-        //   'silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB'
-        // ])
-        .on('end', () => {
-          if (clientId) sendStatus(clientId, 'FFmpeg processing completed successfully.');
-          console.log('FFmpeg processing completed successfully.');
-          resolve();
-        })
-        .on('error', (err) => {
-          if (clientId) sendStatus(clientId, `FFmpeg error: ${err.message}`);
-          console.error('FFmpeg error:', err);
-          reject(err);
-        })
-        .save(outputPath);
-    });
+    if (clientId) sendStatus(clientId, 'Audio successfully processed through FFmpeg filters.');
 
     // Determine processing option (default to 'gcp_gemini')
     const processingOption = req.body.processingOption || 'gcp_gemini';
@@ -156,11 +138,6 @@ app.post('/api/process-audio', upload.single('audio'), async (req, res) => {
 
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
     const processedAudioUrl = `${baseUrl}/uploads/${finalFilename}`;
-
-    // Clean up the original uploaded file
-    fs.unlink(inputPath, (err) => {
-      if (err) console.error('Failed to cleanup original file:', err);
-    });
 
     res.json({
       success: true,

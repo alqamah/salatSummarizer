@@ -39,7 +39,7 @@
 * **sumamariser**: improve the summariser system instruction to account for the other verses. Add options to view verse only, summary only, transiteration (?) along with the same options for the entire surah
 * **TTS** IMPORTANT
 * **add interface to activate recording on the frontend**: use browser's media recorder api to record audio and send it to the backend. refer to roadmap ✅
-* **Add multi-lang support (nepali, hindi and urdu) for output**
+* **Add multi-lang support (nepali, hindi and urdu) for output** ✅
 * **Empty audio handling**
 * **More Trimming Options**
 * **Update System Instruction**: use separate instructions based on whether the audio is trimmed or not. Use exact verses for non-trimmed audio. Use margin of 100% on either side for trimmed audio 
